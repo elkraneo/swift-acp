@@ -87,13 +87,27 @@ public struct McpServerConfig: Codable, Sendable, Hashable {
     /// Environment variables for the server process (array format required by ACP)
     public var env: [EnvVar]
     
-    public init(id: String, name: String, transport: String, command: String? = nil, args: [String] = [], env: [EnvVar] = []) {
+    /// URL for HTTP/SSE transport
+    public var url: String?
+    
+    public init(id: String, name: String, transport: String, command: String? = nil, args: [String] = [], env: [EnvVar] = [], url: String? = nil) {
         self.id = id
         self.name = name
         self.transport = transport
         self.command = command
         self.args = args
         self.env = env
+        self.url = url
+    }
+    
+    /// Create an HTTP MCP server configuration
+    public static func http(id: String, name: String, url: String) -> McpServerConfig {
+        McpServerConfig(id: id, name: name, transport: "http", url: url)
+    }
+    
+    /// Create a stdio MCP server configuration
+    public static func stdio(id: String, name: String, command: String, args: [String] = [], env: [EnvVar] = []) -> McpServerConfig {
+        McpServerConfig(id: id, name: name, transport: "stdio", command: command, args: args, env: env)
     }
 }
 
