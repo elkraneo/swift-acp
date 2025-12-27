@@ -76,7 +76,13 @@ public struct McpServerConfig: Codable, Sendable, Hashable {
     public var name: String
     
     /// Transport type (stdio, sse, http)
-    public var transport: String
+    public var type: String
+    
+    /// URL for HTTP/SSE transport
+    public var url: String?
+    
+    /// Headers for HTTP/SSE transport
+    public var headers: [HttpHeader]
     
     /// Command to launch the server (for stdio)
     public var command: String?
@@ -87,27 +93,45 @@ public struct McpServerConfig: Codable, Sendable, Hashable {
     /// Environment variables for the server process (array format required by ACP)
     public var env: [EnvVar]
     
-    /// URL for HTTP/SSE transport
-    public var url: String?
-    
-    public init(id: String, name: String, transport: String, command: String? = nil, args: [String] = [], env: [EnvVar] = [], url: String? = nil) {
+    public init(
+        id: String,
+        name: String,
+        type: String,
+        url: String? = nil,
+        headers: [HttpHeader] = [],
+        command: String? = nil,
+        args: [String] = [],
+        env: [EnvVar] = []
+    ) {
         self.id = id
         self.name = name
-        self.transport = transport
+        self.type = type
+        self.url = url
+        self.headers = headers
         self.command = command
         self.args = args
         self.env = env
-        self.url = url
     }
     
     /// Create an HTTP MCP server configuration
-    public static func http(id: String, name: String, url: String) -> McpServerConfig {
-        McpServerConfig(id: id, name: name, transport: "http", url: url)
+    public static func http(id: String, name: String, url: String, headers: [HttpHeader] = []) -> McpServerConfig {
+        McpServerConfig(id: id, name: name, type: "http", url: url, headers: headers)
     }
     
     /// Create a stdio MCP server configuration
     public static func stdio(id: String, name: String, command: String, args: [String] = [], env: [EnvVar] = []) -> McpServerConfig {
-        McpServerConfig(id: id, name: name, transport: "stdio", command: command, args: args, env: env)
+        McpServerConfig(id: id, name: name, type: "stdio", command: command, args: args, env: env)
+    }
+}
+
+/// HTTP header for MCP server
+public struct HttpHeader: Codable, Sendable, Hashable {
+    public var name: String
+    public var value: String
+    
+    public init(name: String, value: String) {
+        self.name = name
+        self.value = value
     }
 }
 
