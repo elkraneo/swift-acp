@@ -419,4 +419,29 @@ public struct TokenUsage: Codable, Sendable {
     
     /// Output tokens generated
     public var outputTokens: Int?
+    
+    /// Tokens read from cache (e.g. for Claude)
+    public var cacheReadTokens: Int?
+    
+    /// Tokens used to create cache (e.g. for Claude)
+    public var cacheCreationTokens: Int?
+    
+    public init(
+        inputTokens: Int? = nil,
+        outputTokens: Int? = nil,
+        cacheReadTokens: Int? = nil,
+        cacheCreationTokens: Int? = nil
+    ) {
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cacheReadTokens = cacheReadTokens
+        self.cacheCreationTokens = cacheCreationTokens
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case inputTokens = "input_tokens"
+        case outputTokens = "output_tokens"
+        case cacheReadTokens = "cache_read_input_tokens"
+        case cacheCreationTokens = "cache_creation_input_tokens"
+    }
 }

@@ -117,6 +117,21 @@ public final class ACPClient: Sendable {
         return response
     }
 
+    /// Fetch the manifest for an agent, including status metrics and metadata
+    /// - Parameter name: Agent name (defaults to current connected agent)
+    /// - Returns: Agent manifest with status/usage info
+    public func getAgentManifest(name: String? = nil) async throws -> AgentManifest {
+        let agentName = name ?? agentInfo?.name ?? ""
+        guard !agentName.isEmpty else {
+            throw ACPError.protocolError("No agent name available. Provide a name or connect first.")
+        }
+        
+        return try await transport.sendRequest(
+            method: "agents/get",
+            params: ["name": agentName]
+        )
+    }
+
     /// Disconnect from the agent
     public func disconnect() async {
         transport.disconnect()
