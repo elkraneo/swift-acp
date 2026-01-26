@@ -8,9 +8,12 @@
 
 import Foundation
 import Network
+import OSLog
 
 /// Minimal MCP server for tool exposure via HTTP
 public actor MCPServer {
+
+  private let logger = Logger(subsystem: "io.210x7.swift-acp", category: "mcpserver")
 
   // MARK: - Types
 
@@ -443,7 +446,7 @@ public actor MCPServer {
 
     connection.send(content: data, completion: .contentProcessed { error in
       if let error {
-        print("[MCPServer] Send error: \(error)")
+        self.logger.error("[MCPServer] Send error: \(String(describing: error), privacy: .public)")
       }
     })
   }

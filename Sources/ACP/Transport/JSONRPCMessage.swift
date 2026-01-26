@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 
 // MARK: - JSON-RPC 2.0 Base Types
 
@@ -83,6 +84,7 @@ public enum IncomingMessage: Sendable {
     /// Parse a raw JSON data message
     public static func parse(_ data: Data) throws -> IncomingMessage {
         let decoder = JSONDecoder()
+        let logger = Logger(subsystem: "io.210x7.swift-acp", category: "transport")
         
         // First, try to decode as a generic structure to determine type
         struct MessageProbe: Decodable {
@@ -141,7 +143,7 @@ public enum IncomingMessage: Sendable {
             throw JSONRPCError(code: JSONRPCError.parseError, message: "Unable to determine message type", data: Optional<AnyCodable>.none)
         } catch {
             let jsonString = String(data: data, encoding: .utf8) ?? "binary data"
-            print("[ACP] Parse error: \(error)\nMessage: \(jsonString)")
+            logger.error("[ACP] Parse error: \(String(describing: error), privacy: .public)\nMessage: \(jsonString, privacy: .public)")
             throw error
         }
     }

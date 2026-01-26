@@ -6,12 +6,14 @@
 //
 
 import Foundation
+import OSLog
 
 /// HTTP transport for connecting to ACP servers
 actor HTTPTransport {
 
     // MARK: - Properties
 
+    private static let logger = Logger(subsystem: "io.210x7.swift-acp", category: "transport")
     private let baseURL: URL
     private let session: URLSession
 
@@ -119,7 +121,7 @@ actor HTTPTransport {
                             start: DispatchTime.now(),
                             payloadBytes: payloadBytes
                         )
-                        print("[ACP Timing] request.start id=\(id) method=\(method) bytes=\(payloadBytes)")
+                        Self.logger.info("[ACP Timing] request.start id=\(id, privacy: .public) method=\(method, privacy: .public) bytes=\(payloadBytes, privacy: .public)")
                     }
                     try await send(request)
                 } catch {
@@ -271,7 +273,7 @@ actor HTTPTransport {
         case .response(let id, let result):
             if timingEnabled, let timing = requestTimings.removeValue(forKey: id) {
                 let elapsedMs = Double(DispatchTime.now().uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                print("[ACP Timing] request.end id=\(id) method=\(timing.method) ms=\(String(format: "%.2f", elapsedMs)) responseBytes=\(result.count)")
+                Self.logger.info("[ACP Timing] request.end id=\(id, privacy: .public) method=\(timing.method, privacy: .public) ms=\(String(format: "%.2f", elapsedMs), privacy: .public) responseBytes=\(result.count, privacy: .public)")
             }
             if let continuation = pendingRequests.removeValue(forKey: id) {
                 continuation.resume(returning: result)
@@ -281,7 +283,7 @@ actor HTTPTransport {
         case .error(let id, let error):
             if timingEnabled, let id, let timing = requestTimings.removeValue(forKey: id) {
                 let elapsedMs = Double(DispatchTime.now().uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                print("[ACP Timing] request.error id=\(id) method=\(timing.method) ms=\(String(format: "%.2f", elapsedMs)) error=\(error.message)")
+                Self.logger.info("[ACP Timing] request.error id=\(id, privacy: .public) method=\(timing.method, privacy: .public) ms=\(String(format: "%.2f", elapsedMs), privacy: .public) error=\(error.message, privacy: .public)")
             }
             if let id, let continuation = pendingRequests.removeValue(forKey: id) {
                 continuation.resume(throwing: error)

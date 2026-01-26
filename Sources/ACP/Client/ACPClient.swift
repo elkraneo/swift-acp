@@ -6,12 +6,18 @@
 //
 
 import Foundation
+import OSLog
 
 /// Main client for communicating with an ACP-compatible agent
 @MainActor
 public final class ACPClient: Sendable {
 
     // MARK: - Properties
+
+    private static let logger = Logger(subsystem: "io.210x7.swift-acp", category: "client")
+    private static var isVerboseLoggingEnabled: Bool {
+        ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1"
+    }
 
     private let transport: ACPTransport
     private let clientInfo: ClientInfo
@@ -174,10 +180,10 @@ public final class ACPClient: Sendable {
         self.agentInfo = response.agentInfo
         self.agentCapabilities = response.capabilities
         
-        if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-            print("[ACP] 🤝 Connected to agent: \(response.agentInfo.name) (\(response.agentInfo.version))")
+        if Self.isVerboseLoggingEnabled {
+            Self.logger.debug("[ACP] Connected to agent: \(response.agentInfo.name, privacy: .public) (\(response.agentInfo.version, privacy: .public))")
             if let agentCaps = response.capabilities.mcpCapabilities {
-                print("[ACP]    Agent MCP capabilities: \(agentCaps)")
+                Self.logger.debug("[ACP] Agent MCP capabilities: \(String(describing: agentCaps), privacy: .public)")
             }
         }
 
@@ -228,14 +234,14 @@ public final class ACPClient: Sendable {
             params: request
         )
 
-        if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-            print("[ACP] 🎫 Session created: \(response.sessionId)")
+        if Self.isVerboseLoggingEnabled {
+            Self.logger.debug("[ACP] Session created: \(response.sessionId, privacy: .public)")
             if let modes = response.modes {
-                print("[ACP]    Available modes: \(modes.available.map { $0.id })")
+                Self.logger.debug("[ACP] Available modes: \(modes.available.map { $0.id }.joined(separator: \",\"), privacy: .public)")
             }
             if let models = response.models {
-                print("[ACP]    Available models: \(models.availableModels.map { $0.name })")
-                print("[ACP]    Current model: \(models.currentModelId ?? "none")")
+                Self.logger.debug("[ACP] Available models: \(models.availableModels.map { $0.name }.joined(separator: \",\"), privacy: .public)")
+                Self.logger.debug("[ACP] Current model: \(models.currentModelId ?? "none", privacy: .public)")
             }
         }
 
@@ -359,12 +365,12 @@ public final class ACPClient: Sendable {
     private func handleIncomingMessage(_ message: IncomingMessage) async {
         switch message {
         case .notification(let method, _):
-            if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-                print("[ACP] 📥 Received notification: \(method)")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP] Received notification: \(method, privacy: .public)")
             }
         case .request(let id, let method, _):
-            if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-                print("[ACP] 📥 Received request: \(method) (id: \(id))")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP] Received request: \(method, privacy: .public) (id: \(String(describing: id), privacy: .public))")
             }
         default:
             break
@@ -414,7 +420,7 @@ public final class ACPClient: Sendable {
             messageChunkCount: 0,
             totalTextBytes: 0
         )
-        print("[ACP Timing] prompt.start session=\(sessionId) seq=\(nextSeq) label=\(label)")
+        Self.logger.info("[ACP Timing] prompt.start session=\(sessionId, privacy: .public) seq=\(nextSeq, privacy: .public) label=\(label, privacy: .public)")
     }
 
     private func markPromptResponse(sessionId: SessionID) {
@@ -423,7 +429,7 @@ public final class ACPClient: Sendable {
         timing.responseAt = now
         promptTimings[sessionId] = timing
         let elapsedMs = Double(now.uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-        print("[ACP Timing] prompt.response session=\(sessionId) seq=\(timing.sequence) ms=\(String(format: "%.2f", elapsedMs))")
+        Self.logger.info("[ACP Timing] prompt.response session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) ms=\(String(format: "%.2f", elapsedMs), privacy: .public)")
     }
 
     private func handleSessionUpdateTiming(sessionId: SessionID, update: SessionUpdate) {
@@ -443,13 +449,13 @@ public final class ACPClient: Sendable {
                     let sinceStart = Double(now.uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
                     if let responseAt = timing.responseAt {
                         let sinceResponse = Double(now.uptimeNanoseconds - responseAt.uptimeNanoseconds) / 1_000_000
-                        print("[ACP Timing] prompt.first_message session=\(sessionId) seq=\(timing.sequence) ms=\(String(format: "%.2f", sinceStart)) sinceResponse=\(String(format: "%.2f", sinceResponse))")
+                        Self.logger.info("[ACP Timing] prompt.first_message session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) ms=\(String(format: "%.2f", sinceStart), privacy: .public) sinceResponse=\(String(format: "%.2f", sinceResponse), privacy: .public)")
                     } else {
-                        print("[ACP Timing] prompt.first_message session=\(sessionId) seq=\(timing.sequence) ms=\(String(format: "%.2f", sinceStart))")
+                        Self.logger.info("[ACP Timing] prompt.first_message session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) ms=\(String(format: "%.2f", sinceStart), privacy: .public)")
                     }
                 } else if timing.messageChunkCount % 200 == 0 {
                     let sinceStart = Double(now.uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                    print("[ACP Timing] prompt.chunk_progress session=\(sessionId) seq=\(timing.sequence) chunks=\(timing.messageChunkCount) bytes=\(timing.totalTextBytes) ms=\(String(format: "%.2f", sinceStart))")
+                    Self.logger.info("[ACP Timing] prompt.chunk_progress session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) chunks=\(timing.messageChunkCount, privacy: .public) bytes=\(timing.totalTextBytes, privacy: .public) ms=\(String(format: "%.2f", sinceStart), privacy: .public)")
                 }
             }
         }
@@ -459,19 +465,19 @@ public final class ACPClient: Sendable {
                 if timing.firstToolCallAt == nil {
                     timing.firstToolCallAt = now
                     let sinceStart = Double(now.uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                    print("[ACP Timing] prompt.first_tool_call session=\(sessionId) seq=\(timing.sequence) ms=\(String(format: "%.2f", sinceStart)) toolId=\(call.id) status=\(call.status.rawValue)")
+                    Self.logger.info("[ACP Timing] prompt.first_tool_call session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) ms=\(String(format: "%.2f", sinceStart), privacy: .public) toolId=\(call.id, privacy: .public) status=\(call.status.rawValue, privacy: .public)")
                 }
 
                 if toolTimings[call.id] == nil, call.status == .running || call.status == .pending {
                     toolTimings[call.id] = now
                     let sinceStart = Double(now.uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                    print("[ACP Timing] tool.start session=\(sessionId) seq=\(timing.sequence) toolId=\(call.id) status=\(call.status.rawValue) ms=\(String(format: "%.2f", sinceStart))")
+                    Self.logger.info("[ACP Timing] tool.start session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) toolId=\(call.id, privacy: .public) status=\(call.status.rawValue, privacy: .public) ms=\(String(format: "%.2f", sinceStart), privacy: .public)")
                 }
 
                 if call.status == .complete || call.status == .failed || call.status == .cancelled {
                     if let startedAt = toolTimings.removeValue(forKey: call.id) {
                         let toolMs = Double(now.uptimeNanoseconds - startedAt.uptimeNanoseconds) / 1_000_000
-                        print("[ACP Timing] tool.end session=\(sessionId) seq=\(timing.sequence) toolId=\(call.id) status=\(call.status.rawValue) ms=\(String(format: "%.2f", toolMs))")
+                        Self.logger.info("[ACP Timing] tool.end session=\(sessionId, privacy: .public) seq=\(timing.sequence, privacy: .public) toolId=\(call.id, privacy: .public) status=\(call.status.rawValue, privacy: .public) ms=\(String(format: "%.2f", toolMs), privacy: .public)")
                     }
                 }
             }
@@ -563,26 +569,26 @@ public final class ACPClient: Sendable {
                 }
 
             case "tools/list":
-                if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-                    print("[ACPClient] 🛠️ Received tools/list request")
+                if Self.isVerboseLoggingEnabled {
+                    Self.logger.debug("[ACPClient] Received tools/list request")
                 }
                 if let tools = await delegate?.listTools(self) {
-                    if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-                        print("[ACPClient]   Providing \(tools.count) tools")
+                    if Self.isVerboseLoggingEnabled {
+                        Self.logger.debug("[ACPClient] Providing \(tools.count, privacy: .public) tools")
                     }
                     let response = ListToolsResponse(tools: tools)
                     try await transport.sendResponse(id: id, result: response)
                 } else {
-                    if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-                        print("[ACPClient]   No tools provided (delegate nil)")
+                    if Self.isVerboseLoggingEnabled {
+                        Self.logger.debug("[ACPClient] No tools provided (delegate nil)")
                     }
                     let response = ListToolsResponse(tools: [])
                     try await transport.sendResponse(id: id, result: response)
                 }
 
             case "tools/call":
-                if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-                    print("[ACPClient] ⚡️ Received tools/call request")
+                if Self.isVerboseLoggingEnabled {
+                    Self.logger.debug("[ACPClient] Received tools/call request")
                 }
                 guard let params,
                       let request = try? decoder.decode(CallToolRequest.self, from: params) else {
@@ -606,7 +612,7 @@ public final class ACPClient: Sendable {
             }
         } catch {
             // Failed to send response
-            print("[ACP] Failed to respond to \(method): \(error)")
+            Self.logger.error("[ACP] Failed to respond to \(method, privacy: .public): \(String(describing: error), privacy: .public)")
         }
     }
 }

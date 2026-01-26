@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// Transport layer that communicates with an agent process via stdin/stdout
 actor ProcessTransport {
@@ -106,18 +107,21 @@ actor ProcessTransport {
         self.stderrPipe = stderr
         self.process = proc
         
-        // Log the command being launched
-        let fullCommand = "\(command) \(arguments.joined(separator: " "))"
-        print("[ACP Transport] Launching: \(fullCommand)")
-        print("[ACP Transport] Working directory: \(workingDirectory?.path ?? "default")")
-        print("[ACP Transport] PATH includes: \(String(env["PATH"]?.prefix(200) ?? "nil"))...")
+        if Self.isVerboseLoggingEnabled {
+            let fullCommand = "\(command) \(arguments.joined(separator: " "))"
+            Self.logger.debug("[ACP Transport] Launching: \(fullCommand, privacy: .public)")
+            Self.logger.debug("[ACP Transport] Working directory: \(workingDirectory?.path ?? "default", privacy: .public)")
+            Self.logger.debug("[ACP Transport] PATH includes: \(String(env["PATH"]?.prefix(200) ?? "nil"), privacy: .public)...")
+        }
         
         // Launch the process first
         do {
             try proc.run()
-            print("[ACP Transport] Process launched with PID: \(proc.processIdentifier)")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] Process launched with PID: \(proc.processIdentifier, privacy: .public)")
+            }
         } catch {
-            print("[ACP Transport] Failed to launch: \(error)")
+            Self.logger.error("[ACP Transport] Failed to launch: \(String(describing: error), privacy: .public)")
             throw TransportError.failedToLaunch(error)
         }
         
@@ -184,7 +188,7 @@ actor ProcessTransport {
                             start: DispatchTime.now(),
                             payloadBytes: payloadBytes
                         )
-                        print("[ACP Timing] request.start id=\(id) method=\(method) bytes=\(payloadBytes)")
+                        Self.logger.info("[ACP Timing] request.start id=\(id, privacy: .public) method=\(method, privacy: .public) bytes=\(payloadBytes, privacy: .public)")
                     }
                     try await send(request)
                 } catch {
@@ -230,7 +234,7 @@ actor ProcessTransport {
         // Debug log the response
         if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1",
            let jsonStr = String(data: data, encoding: .utf8) {
-            print("[ACP Transport] -> \(jsonStr)")
+            Self.logger.debug("[ACP Transport] -> \(jsonStr, privacy: .public)")
         }
         
         guard let stdin = stdinPipe else {
@@ -285,7 +289,7 @@ actor ProcessTransport {
         // Debug Log
         if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1",
            let jsonStr = String(data: data, encoding: .utf8) {
-            print("[ACP Transport] -> \(jsonStr)")
+            Self.logger.debug("[ACP Transport] -> \(jsonStr, privacy: .public)")
         }
         
         // ACP uses newline-delimited JSON
@@ -309,12 +313,12 @@ actor ProcessTransport {
         errorReadingTask = Task.detached {
             do {
                 for try await line in fileHandle.bytes.lines {
-                    print("[ACP Agent Error] \(line)")
+                    Self.logger.error("[ACP Agent Error] \(line, privacy: .public)")
                 }
             } catch {
                 // Ignore cancellation errors
                 if !(error is CancellationError) {
-                    print("[ACP] stderr read error: \(error)")
+                    Self.logger.error("[ACP] stderr read error: \(String(describing: error), privacy: .public)")
                 }
             }
         }
@@ -328,7 +332,9 @@ actor ProcessTransport {
         // Use a background thread to poll for available data
         // This is more reliable than bytes.lines for process output
         readingTask = Task.detached { [weak self] in
-            print("[ACP Transport] Started reading stdout")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] Started reading stdout")
+            }
             var lineBuffer = ""
             
             do {
@@ -341,7 +347,9 @@ actor ProcessTransport {
                     
                     if data.isEmpty {
                         // Empty data means EOF - pipe closed
-                        print("[ACP Transport] stdout EOF reached")
+                        if Self.isVerboseLoggingEnabled {
+                            Self.logger.debug("[ACP Transport] stdout EOF reached")
+                        }
                         
                         // Process any remaining data in buffer
                         if !lineBuffer.isEmpty {
@@ -369,10 +377,12 @@ actor ProcessTransport {
             } catch is CancellationError {
                 // Normal cancellation - ignore
             } catch {
-                print("[ACP Transport] Read error: \(error)")
+                Self.logger.error("[ACP Transport] Read error: \(String(describing: error), privacy: .public)")
             }
             
-            print("[ACP Transport] stdout reader exiting")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] stdout reader exiting")
+            }
         }
     }
     
@@ -382,45 +392,53 @@ actor ProcessTransport {
         
         // Skip if it doesn't look like JSON (should start with '{')
         guard line.hasPrefix("{") else {
-            print("[ACP] Skipping non-JSON line: \(line.prefix(100))")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP] Skipping non-JSON line: \(String(line.prefix(100)), privacy: .public)")
+            }
             return
         }
         
         guard let data = line.data(using: .utf8) else {
-            print("[ACP] Failed to convert line to data")
+            Self.logger.error("[ACP] Failed to convert line to data")
             return
         }
         
-        if ProcessInfo.processInfo.environment["ACP_VERBOSE"] == "1" {
-            print("[ACP Transport] <- \(line)")
+        if Self.isVerboseLoggingEnabled {
+            Self.logger.debug("[ACP Transport] <- \(line, privacy: .public)")
         }
         
         do {
             let message = try IncomingMessage.parse(data)
             await handleMessage(message)
         } catch {
-            print("[ACP] Failed to parse message (length: \(line.count)): \(error)")
-            print("[ACP] Message preview: \(line.prefix(200))...\(line.suffix(100))")
+            Self.logger.error("[ACP] Failed to parse message (length: \(line.count, privacy: .public)): \(String(describing: error), privacy: .public)")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP] Message preview: \(String(line.prefix(200)), privacy: .public)...\(String(line.suffix(100)), privacy: .public)")
+            }
         }
     }
     
     private func handleMessage(_ message: IncomingMessage) async {
         switch message {
         case .response(let id, let result):
-            print("[ACP Transport] Handling response for id: \(id)")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] Handling response for id: \(id, privacy: .public)")
+            }
             if timingEnabled, let timing = requestTimings.removeValue(forKey: id) {
                 let elapsedMs = Double(DispatchTime.now().uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                print("[ACP Timing] request.end id=\(id) method=\(timing.method) ms=\(String(format: "%.2f", elapsedMs)) responseBytes=\(result.count)")
+                Self.logger.info("[ACP Timing] request.end id=\(id, privacy: .public) method=\(timing.method, privacy: .public) ms=\(String(format: "%.2f", elapsedMs), privacy: .public) responseBytes=\(result.count, privacy: .public)")
             }
             if let continuation = pendingRequests.removeValue(forKey: id) {
                 continuation.resume(returning: result)
             }
             
         case .error(let id, let error):
-            print("[ACP Transport] Handling error for id: \(String(describing: id))")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] Handling error for id: \(String(describing: id), privacy: .public)")
+            }
             if timingEnabled, let id, let timing = requestTimings.removeValue(forKey: id) {
                 let elapsedMs = Double(DispatchTime.now().uptimeNanoseconds - timing.start.uptimeNanoseconds) / 1_000_000
-                print("[ACP Timing] request.error id=\(id) method=\(timing.method) ms=\(String(format: "%.2f", elapsedMs)) error=\(error.message)")
+                Self.logger.info("[ACP Timing] request.error id=\(id, privacy: .public) method=\(timing.method, privacy: .public) ms=\(String(format: "%.2f", elapsedMs), privacy: .public) error=\(error.message, privacy: .public)")
             }
             if let id, let continuation = pendingRequests.removeValue(forKey: id) {
                 continuation.resume(throwing: error)
@@ -429,11 +447,15 @@ actor ProcessTransport {
             await messageHandler?(message)
             
         case .notification(let method, _):
-            print("[ACP Transport] Handling notification: \(method)")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] Handling notification: \(method, privacy: .public)")
+            }
             await messageHandler?(message)
             
         case .request(let id, let method, _):
-            print("[ACP Transport] Handling request: \(method), id: \(id)")
+            if Self.isVerboseLoggingEnabled {
+                Self.logger.debug("[ACP Transport] Handling request: \(method, privacy: .public), id: \(id, privacy: .public)")
+            }
             await messageHandler?(message)
         }
     }
