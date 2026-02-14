@@ -1,0 +1,51 @@
+Building for debugging...
+[0/2] Write swift-version-596C98914D6876CD.txt
+Build complete! (0.13s)
+Test Suite 'All tests' started at 2026-02-10 11:38:41.518.
+Test Suite 'swift-acpPackageTests.xctest' started at 2026-02-10 11:38:41.528.
+Test Suite 'JSONRPCTests' started at 2026-02-10 11:38:41.528.
+Test Case '-[ACPTests.JSONRPCTests testErrorResponseDecoding]' started.
+Test Case '-[ACPTests.JSONRPCTests testErrorResponseDecoding]' passed (0.006 seconds).
+Test Case '-[ACPTests.JSONRPCTests testNotificationEncoding]' started.
+Test Case '-[ACPTests.JSONRPCTests testNotificationEncoding]' passed (0.000 seconds).
+Test Case '-[ACPTests.JSONRPCTests testParseError]' started.
+Test Case '-[ACPTests.JSONRPCTests testParseError]' passed (0.000 seconds).
+Test Case '-[ACPTests.JSONRPCTests testParseNotification]' started.
+Test Case '-[ACPTests.JSONRPCTests testParseNotification]' passed (0.001 seconds).
+Test Case '-[ACPTests.JSONRPCTests testParseRequest]' started.
+Test Case '-[ACPTests.JSONRPCTests testParseRequest]' passed (0.000 seconds).
+Test Case '-[ACPTests.JSONRPCTests testParseResponse]' started.
+Test Case '-[ACPTests.JSONRPCTests testParseResponse]' passed (0.000 seconds).
+Test Case '-[ACPTests.JSONRPCTests testRequestEncoding]' started.
+Test Case '-[ACPTests.JSONRPCTests testRequestEncoding]' passed (0.000 seconds).
+Test Case '-[ACPTests.JSONRPCTests testResponseDecoding]' started.
+Test Case '-[ACPTests.JSONRPCTests testResponseDecoding]' passed (0.000 seconds).
+Test Suite 'JSONRPCTests' passed at 2026-02-10 11:38:41.538.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.009 (0.010) seconds
+Test Suite 'SchemaTests' started at 2026-02-10 11:38:41.538.
+Test Case '-[ACPTests.SchemaTests testAgentCapabilitiesDecoding]' started.
+Test Case '-[ACPTests.SchemaTests testAgentCapabilitiesDecoding]' passed (0.001 seconds).
+Test Case '-[ACPTests.SchemaTests testClientCapabilitiesRoundTrip]' started.
+Test Case '-[ACPTests.SchemaTests testClientCapabilitiesRoundTrip]' passed (0.000 seconds).
+Test Case '-[ACPTests.SchemaTests testInitializeRequestEncoding]' started.
+Test Case '-[ACPTests.SchemaTests testInitializeRequestEncoding]' passed (0.001 seconds).
+Test Case '-[ACPTests.SchemaTests testPermissionRequestDecoding]' started.
+Test Case '-[ACPTests.SchemaTests testPermissionRequestDecoding]' passed (0.000 seconds).
+Test Case '-[ACPTests.SchemaTests testPlanDecoding]' started.
+Test Case '-[ACPTests.SchemaTests testPlanDecoding]' passed (0.001 seconds).
+Test Case '-[ACPTests.SchemaTests testPromptRequestEncoding]' started.
+/Volumes/Plutonian/_Developer/swift-acp/Tests/ACPTests/ACPTests.swift:257: error: -[ACPTests.SchemaTests testPromptRequestEncoding] : XCTAssertEqual failed: ("nil") is not equal to ("Optional("text")")
+/Volumes/Plutonian/_Developer/swift-acp/Tests/ACPTests/ACPTests.swift:258: error: -[ACPTests.SchemaTests testPromptRequestEncoding] : XCTAssertEqual failed: ("nil") is not equal to ("Optional("Hello, agent!")")
+Test Case '-[ACPTests.SchemaTests testPromptRequestEncoding]' failed (0.035 seconds).
+Test Case '-[ACPTests.SchemaTests testSessionUpdateDecoding]' started.
+Test Case '-[ACPTests.SchemaTests testSessionUpdateDecoding]' passed (0.001 seconds).
+Test Suite 'SchemaTests' failed at 2026-02-10 11:38:41.579.
+	 Executed 7 tests, with 2 failures (0 unexpected) in 0.040 (0.041) seconds
+Test Suite 'swift-acpPackageTests.xctest' failed at 2026-02-10 11:38:41.579.
+	 Executed 15 tests, with 2 failures (0 unexpected) in 0.049 (0.051) seconds
+Test Suite 'All tests' failed at 2026-02-10 11:38:41.579.
+	 Executed 15 tests, with 2 failures (0 unexpected) in 0.049 (0.061) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 1501
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
