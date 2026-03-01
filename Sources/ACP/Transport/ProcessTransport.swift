@@ -1,3 +1,5 @@
+#if os(macOS)
+
 //
 //  ProcessTransport.swift
 //  swift-acp
@@ -465,3 +467,79 @@ actor ProcessTransport {
         }
     }
 }
+
+#else
+
+import Foundation
+
+/// visionOS/iOS fallback: process spawning transport is unavailable.
+actor ProcessTransport {
+    private let command: String
+    private let arguments: [String]
+    private let workingDirectory: URL?
+    private var requestCounter: Int = 0
+
+    public var isConnected: Bool { false }
+
+    public init(command: String, arguments: [String] = [], workingDirectory: URL? = nil) {
+        self.command = command
+        self.arguments = arguments
+        self.workingDirectory = workingDirectory
+    }
+
+    public func setMessageHandler(_ handler: @escaping @Sendable (IncomingMessage) async -> Void) {}
+
+    public func connect() async throws {
+        let details = "Process transport is unsupported on this platform (\(command) \(arguments.joined(separator: " ")))."
+        throw TransportError.failedToLaunch(
+            NSError(domain: "io.210x7.swift-acp", code: 1, userInfo: [NSLocalizedDescriptionKey: details])
+        )
+    }
+
+    public func disconnect() {}
+
+    public func nextRequestID() -> RequestID {
+        requestCounter += 1
+        return .string("\(requestCounter)")
+    }
+
+    public func sendRequest<Params: Encodable & Sendable, Result: Decodable & Sendable>(
+        method: String,
+        params: Params?
+    ) async throws -> Result {
+        _ = method
+        _ = params
+        throw TransportError.disconnected
+    }
+
+    public func sendNotification<Params: Encodable & Sendable>(
+        method: String,
+        params: Params?
+    ) async throws {
+        _ = method
+        _ = params
+        throw TransportError.disconnected
+    }
+
+    public func sendResponse<Result: Encodable & Sendable>(
+        id: RequestID,
+        result: Result
+    ) async throws {
+        _ = id
+        _ = result
+        throw TransportError.disconnected
+    }
+
+    public func sendErrorResponse(
+        id: RequestID,
+        code: Int,
+        message: String
+    ) async throws {
+        _ = id
+        _ = code
+        _ = message
+        throw TransportError.disconnected
+    }
+}
+
+#endif
